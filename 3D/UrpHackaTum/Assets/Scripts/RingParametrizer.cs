@@ -1,6 +1,3 @@
-
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class RingParametrizer : MonoBehaviour
@@ -12,7 +9,7 @@ public class RingParametrizer : MonoBehaviour
     {
         var components = transform.GetComponentsInChildren<SatelitesOnRing>();
         Debug.Log("setting " + components.Length);
-        foreach(var comp in components)
+        foreach (var comp in components)
         {
             comp.numberOfSats = numberOfSats;
             comp.radius = radius;

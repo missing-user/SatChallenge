@@ -1,5 +1,3 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class SatPosBinder : MonoBehaviour
@@ -28,7 +26,7 @@ public class SatPosBinder : MonoBehaviour
         sats = GameObject.FindGameObjectsWithTag("Satellite");
         coneMaterial = GetComponent<MeshRenderer>().sharedMaterial;
 
-        for (int i = motionNormals.Length - 1; i >= sats.Length-1; i--)
+        for (int i = motionNormals.Length - 1; i >= sats.Length - 1; i--)
         {
             motionNormals[i] = Vector4.zero;
             points[i] = Vector4.zero;

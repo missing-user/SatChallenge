@@ -1,95 +1,168 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class PizzaChecker : MonoBehaviour
 {
-    public uint pizzaPieces = 8;
-    private List<Vector3>[] satsPerPizza;
+    public int pizzaPieces = 8;
+    public Dictionary<int, GameObject> indexedSatellites = new Dictionary<int, GameObject>();
+    public Dictionary<int, int> indexedRegions = new Dictionary<int, int>();
+    public Text status;
+    private bool hasBeenFailiure=false;
 
-    public bool IsInSatelliteCone(Matrix4x4 pizzaMatrix, Vector3 satellite, Color color)
+    private float theta_earth = 45f; //used to be 42f;
+
+    RegionSelector RS = new RegionSelector(4, 4);
+    public bool IsInSatelliteCone(Matrix4x4 pizzaMatrix, Vector3 satellite)
     {
         // cone angle from the satellite
-        float b_max = (90 + 10) / 180 * Mathf.PI;
-        float rFromEarthCenter = satellite.magnitude;
-        float theta_max = -(Mathf.Asin(Constants.R_earth * Mathf.Sin(b_max) / rFromEarthCenter) + b_max - Mathf.PI);
+        float b_max = (90 + Constants.LOWER_PLANE_ANGLE) * Mathf.Deg2Rad;
+        float r = satellite.magnitude;
+        float theta_max = -(Mathf.Asin(Constants.R_earth * 1e-6f * Mathf.Sin(b_max) / r) + b_max - Mathf.PI);
 
-        float viewAngleFromSatellite = 180 - (90 + 10) - theta_max;
 
-        //are the vertecies in range?
-        foreach (Vector3 vtx in pizzaToVertecies(pizzaMatrix, color))
+        // is the satellite on the correct side of earth?
+        Vector3 surfaceNormal = pizzaMatrix * Vector3.up;
+        if (Vector3.Dot(surfaceNormal, satellite) < 0)
         {
-            Vector3 satToVertex = satellite - vtx;
-            float dotRes = Vector3.Dot(Vector3.Normalize(satToVertex), Vector3.Normalize(vtx));
-            if (Mathf.Abs(Mathf.Acos(dotRes)) > 70f / 180f * Mathf.PI)
-            {
-                // TODO:  What the fuck is going on here???
-                // it works - but why?
-                return false;
-            }
+            return false;
         }
 
+        //are the vertecies in range?
+        foreach (Vector3 vtx in pizzaToVertecies(pizzaMatrix, null))
+        {
+            Vector3 satToVertex = vtx - satellite;
+            float dotp = Vector3.Dot(Vector3.Normalize(vtx), -Vector3.Normalize(satToVertex));
+
+#if DEBUG_MATH
+    Debug.Log(Mathf.Acos(dotp) * Mathf.Rad2Deg + " should be less than " + theta_max * Mathf.Rad2Deg);
+    Debug.DrawRay(satellite, Vector3.Normalize(-satellite), Color.red);
+    Debug.DrawRay(satellite, Vector3.Normalize(satToVertex));
+#endif
+
+            if (float.IsNaN(theta_max) || Mathf.Acos(dotp) > theta_max)
+            {
+                return false;
+            }
+#if DEBUG_MATH
+    Debug.Log("found vertex in cone");
+    Debug.DrawRay(Vector3.zero, vtx);
+#endif
+        }
         return true;
     }
 
-    Vector3[] pizzaToVertecies(Matrix4x4 ltow, Color color)
+    Vector3[] pizzaToVertecies(Matrix4x4 ltow, Color? color)
     {
         // calculating the pizza vertecies
-        float theta = 42f * Mathf.PI / 180f; // the elevation angle where our pizza pieces start
-        float phi = 2f * Mathf.PI / 8f;
+        float theta = theta_earth * Mathf.PI / 180f; // the elevation angle where our pizza pieces start
+        float phi = 2f * Mathf.PI / ((float)pizzaPieces);
 
         Vector3 pole = ltow * Vector3.up;
         Vector3 east = ltow * new Vector3(
-            Mathf.Sin(theta) * Mathf.Cos(-Mathf.PI/2),
+            Mathf.Sin(theta) * Mathf.Cos(-Mathf.PI / 2),
             Mathf.Cos(theta),
-            Mathf.Sin(theta) * Mathf.Sin(-Mathf.PI/2));
+            Mathf.Sin(theta) * Mathf.Sin(-Mathf.PI / 2));
         Vector3 west = ltow * new Vector3(
-            Mathf.Sin(theta) * Mathf.Cos(phi - Mathf.PI/2 ),
+            Mathf.Sin(theta) * Mathf.Cos(phi - Mathf.PI / 2),
             Mathf.Cos(theta),
-            Mathf.Sin(theta) * Mathf.Sin(phi - Mathf.PI/2 )); 
-        //pole *= 1.2f; east *= 1.2f; west *= 1.2f;
-        Debug.DrawLine(pole, east, color);
-        Debug.DrawLine(east, west, color);
-        Debug.DrawLine(west, pole, color);
+            Mathf.Sin(theta) * Mathf.Sin(phi - Mathf.PI / 2));
+
+        if (color.HasValue)
+        {
+            Debug.DrawLine(pole, east, color.Value);
+            Debug.DrawLine(east, west, color.Value);
+            Debug.DrawLine(west, pole, color.Value);
+        }
 
         //are the vertecies in range?
-        return new Vector3[] { pole, east, west};
+        return new Vector3[] { pole, east, west };
     }
 
     private Color iToColor(int ind)
     {
-        return Color.HSVToRGB(((float)ind) / pizzaPieces, 1, 1);
+        return Color.HSVToRGB((ind % pizzaPieces) / (float)pizzaPieces, 1, 1);
     }
 
     private Matrix4x4 PizzaMatrix(int ind)
     {
-        return transform.localToWorldMatrix *
-                Matrix4x4.Rotate(Quaternion.Euler(0, 360f / pizzaPieces * ind, 0));
+        Matrix4x4 pieceMatrix = transform.localToWorldMatrix;
+        pieceMatrix *= Matrix4x4.Rotate(Quaternion.Euler(0, 360f / pizzaPieces * ind, 0));
+        if (ind > pizzaPieces)
+            pieceMatrix *= Matrix4x4.Rotate(Quaternion.Euler(0, 0, 180));
+        return pieceMatrix;
     }
+
+
+    void reindexModel()
+    {
+        //reindex the regions (currently just the pizza slices, times 2 because of the two poles)
+        indexedRegions.Clear();
+        for (int i = 0; i < 2 * pizzaPieces; i++)
+        {
+            indexedRegions.Add(i+1, i);
+        }
+
+        //reindex the satellite game objects
+        int j = 1;
+        indexedSatellites.Clear();
+        foreach (var satObj in GameObject.FindGameObjectsWithTag("Satellite"))
+        {
+            indexedSatellites.Add(j, satObj);
+            j++;
+        }
+
+        if (indexedSatellites.Count != RS?.satCount || indexedRegions.Count != RS?.regCount)
+        {
+            Debug.Log($"indexed Sats: {indexedSatellites.Count} ({RS?.satCount} in matrix) indexed Regions: {indexedRegions.Count} ({RS?.regCount} in matrix)");
+            RS = new RegionSelector(indexedSatellites.Count, indexedRegions.Count);
+            hasBeenFailiure = false;
+        }
+
+    }
+
 
     private void Update()
     {
-        for (int i = 0; i < pizzaPieces; i++)
+        reindexModel();
+        RS.Clear();
+        
+
+        foreach (var satTuple in indexedSatellites)
         {
-            satsPerPizza[i].Clear();
-
-            foreach (GameObject sat in GameObject.FindGameObjectsWithTag("Satellite"))
+            foreach (var regionTuple in indexedRegions)
             {
-                if (IsInSatelliteCone(PizzaMatrix(i), sat.transform.position, iToColor(i)))
+                if (IsInSatelliteCone(PizzaMatrix(regionTuple.Key), satTuple.Value.transform.position))
                 {
-                    var tmp = pizzaToVertecies(PizzaMatrix(i), iToColor(i));
-                    Vector3 avg = (tmp[0] + tmp[1] + tmp[2]) / 3f;
+                    RS.AddEdge(satTuple.Key, regionTuple.Key);
                 }
-
-                satsPerPizza[i].Add(sat.transform.position);
             }
         }
 
-
-
-        for (int i = 0; i < pizzaPieces; i++)
+        if (status != null)
         {
-            Debug.DrawLine(satsPerPizza[i][0], PizzaMatrix(i).MultiplyPoint(Vector3.zero));
+            int validConnections = RS.hopcroftKarp();
+            hasBeenFailiure = hasBeenFailiure | validConnections != indexedRegions.Count;
+            status.text = $"{validConnections} of {indexedRegions.Count} regions are covered \n {(hasBeenFailiure?"Coverage issues detected":"")}";
+        }
+
+        foreach (var regionTuple in indexedRegions)
+        {
+            int sat = RS.getSatelliteForRegion(regionTuple.Key);
+            var tmp = pizzaToVertecies(PizzaMatrix(regionTuple.Key), iToColor(regionTuple.Key));
+            Vector3 avg = (tmp[0] + tmp[1] + tmp[2]) / 3f;
+
+            if (indexedSatellites.ContainsKey(sat))
+            {
+                Debug.DrawLine(avg, indexedSatellites[sat].transform.position, iToColor(regionTuple.Key));
+                indexedSatellites[sat].GetComponentInChildren<Renderer>().material.color = iToColor(sat);
+
+            }
+            else
+            {
+                //TODO: find out why this is happening
+                Debug.LogWarning($"couldn't find key {sat} that was used during matching");
+            }
         }
     }
 }

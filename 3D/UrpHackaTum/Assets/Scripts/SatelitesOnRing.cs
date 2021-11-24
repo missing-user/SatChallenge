@@ -1,5 +1,3 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class SatelitesOnRing : MonoBehaviour
@@ -21,7 +19,7 @@ public class SatelitesOnRing : MonoBehaviour
 
     public void validation()
     {
-        
+
         Vector3 point = transform.position;
 
         var destroyQueue = new Transform[transform.childCount];
@@ -32,7 +30,7 @@ public class SatelitesOnRing : MonoBehaviour
 
 
 
-        #if UNITY_EDITOR
+#if UNITY_EDITOR
         UnityEditor.EditorApplication.delayCall += () =>
         {
             foreach (Transform child in destroyQueue)
@@ -74,12 +72,12 @@ public class SatelitesOnRing : MonoBehaviour
         Debug.Log($"Sattellites are flying with a velocity of {velocity} m/s");
 
         rotationRate = velocity * 360f / (2 * Mathf.PI * unityToM(radius)); // 2PI / time = 2PI / (circumference / velocity)
-        Debug.Log($"Resulting in a rotation period of {(2 * Mathf.PI * unityToM(radius))/ velocity/3600/24} days");
-        
+        Debug.Log($"Resulting in a rotation period of {(2 * Mathf.PI * unityToM(radius)) / velocity / 3600 / 24} days");
+
     }
     void Start()
     {
-        
+
         //validation();
     }
 

@@ -1,10 +1,8 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class EarthManager : MonoBehaviour
 {
-    public static float timeScale = 60*60;
+    public static float timeScale = 60 * 60;
     // Start is called before the first frame update
     void Start()
     {
