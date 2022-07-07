@@ -62,7 +62,7 @@ pandocfilters @ file:///home/conda/feedstock_root/build_artifacts/pandocfilters_
 parso @ file:///home/conda/feedstock_root/build_artifacts/parso_1617148930513/work
 pexpect @ file:///home/conda/feedstock_root/build_artifacts/pexpect_1602535608087/work
 pickleshare @ file:///home/conda/feedstock_root/build_artifacts/pickleshare_1602536217715/work
-Pillow==8.4.0
+Pillow==9.0.1
 plotly @ file:///home/conda/feedstock_root/build_artifacts/plotly_1636993727056/work
 poliastro @ file:///home/conda/feedstock_root/build_artifacts/poliastro_1631524945903/work
 prometheus-client @ file:///home/conda/feedstock_root/build_artifacts/prometheus_client_1635538335951/work
