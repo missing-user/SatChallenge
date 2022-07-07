@@ -12,7 +12,7 @@ brotlipy @ file:///Users/runner/miniforge3/conda-bld/brotlipy_1636012310340/work
 cached-property @ file:///home/conda/feedstock_root/build_artifacts/cached_property_1615209429212/work
 certifi==2021.10.8
 cffi @ file:///opt/concourse/worker/volumes/live/506ff722-306a-4142-6379-cfea99aadbed/volume/cffi_1625814701363/work
-channels==3.0.1
+channels==3.0.3
 charset-normalizer @ file:///home/conda/feedstock_root/build_artifacts/charset-normalizer_1634057506004/work
 cryptography @ file:///Users/runner/miniforge3/conda-bld/cryptography_1636040957818/work
 cycler @ file:///home/conda/feedstock_root/build_artifacts/cycler_1635519461629/work
